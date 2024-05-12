@@ -22,21 +22,32 @@ THREE.ColorManagement.enabled = true
  * 0. Tweakable parameters for the scene
  *************************************************/
 // Texture width/height for simulation
-const FBO_WIDTH = 128
-const FBO_HEIGHT = 128
+const FBO_WIDTH = 256
+const FBO_HEIGHT = 256
 // this controls the fps of the gpgpu renderer, thus controls the speed of the animation
 // unit in seconds
 const FPSInterval = 1/60
 
 const params = {
   // general scene params
+  radius: 0.8
 }
+// Set I - Calmer curl field, best with flying colors
+const setI = {a: 0.13, b: 5.0, c: 0.4, d: 0.0075}
+// Set II - Wilder curl field
+const setII = {a: 0.12, b: 7.0, c: 1.5, d: 0.0075}
+// Set III - Ghostly tango, best with pure white
+const setIII = {a: 0.23, b: 3.3, c: 0.3, d: 0.0161}
+
+// switch between sets here
+const set = setI
 const uniforms = {
   ...getDefaultUniforms(),
-  circularForceFactor: { value: 0.15 }, // 0.1
-  curlPatternScale: { value: 5.0 }, // 5.0
-  curlVaryingSpeed: { value: 0.6 }, // 2.0
-  curlForceFactor: { value: 0.0075 } // 0.0075
+  radius: { value: params.radius },
+  circularForceFactor: { value: set.a },
+  curlPatternScale: { value: set.b },
+  curlVaryingSpeed: { value: set.c },
+  curlForceFactor: { value: set.d }
 }
 
 
@@ -89,6 +100,7 @@ let app = {
     this.gpuCompute.setVariableDependencies( this.posmapVariable, [ this.posmapVariable ] )
     this.posmapVariable.material.uniforms[ 'infomap' ] = { value: infomap }
     this.posmapVariable.material.uniforms[ 'u_time' ] = uniforms.u_time
+    this.posmapVariable.material.uniforms[ 'radius' ] = uniforms.radius
     this.posmapVariable.material.uniforms[ 'circularForceFactor' ] = uniforms.circularForceFactor
     this.posmapVariable.material.uniforms[ 'curlPatternScale' ] = uniforms.curlPatternScale
     this.posmapVariable.material.uniforms[ 'curlVaryingSpeed' ] = uniforms.curlVaryingSpeed
@@ -122,6 +134,7 @@ let app = {
       uniforms: {
         ...uniforms,
         posMap: { value: null },
+        infoMap: { value: infomap },
       },
       transparent: true,
       vertexShader: vertexShader,
@@ -154,7 +167,7 @@ let app = {
     for ( let j = 0; j < FBO_HEIGHT; j ++ ) {
       for ( let i = 0; i < FBO_WIDTH; i ++ ) {
         let theta = Math.random() * Math.PI * 2
-        let r = 0.8
+        let r = params.radius
 
         pixels[ p + 0 ] = r * Math.cos(theta)
         pixels[ p + 1 ] = r * Math.sin(theta)
@@ -172,12 +185,13 @@ let app = {
     for ( let j = 0; j < FBO_HEIGHT; j ++ ) {
       for ( let i = 0; i < FBO_WIDTH; i ++ ) {
         // speeds, scatter them in opposite directions
-        pixels[ p + 0 ] = (0.01 + 0.005 * Math.random()) * ( Math.random() < 0.5 ? -1 : 1 ) * 10.
-        // target radii
-        pixels[ p + 1 ] = 0.8
+        pixels[ p + 0 ] = (0.01 + 0.005 * Math.random()) * ( Math.random() < 0.8 ? -1 : 1 ) * 10.
+        // spare randomness not in use
+        pixels[ p + 1 ] = Math.random()
         // radii fluctuation
         pixels[ p + 2 ] = 0.08 * Math.random() - 0.04
-        pixels[ p + 3 ] = 1.
+        // particle size
+        pixels[ p + 3 ] = 0.5 + Math.random()
 
         p += 4
       }
