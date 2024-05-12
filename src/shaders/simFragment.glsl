@@ -4,6 +4,7 @@
 
 uniform sampler2D infomap;
 uniform float u_time;
+uniform float radius;
 uniform float circularForceFactor;
 uniform float curlPatternScale;
 uniform float curlVaryingSpeed;
@@ -23,12 +24,20 @@ void main()	{
 
     // info.x = speed of the particles
     float targetAngle = atan(pos.y, pos.x) + info.x;
-    // info.y = target radius, introducing fluctuations via cosine and info.z
-    float targetRadius = info.y + (cos(targetAngle * 2. + 2.) + 1.) * info.z;
+    // introducing radius fluctuations via cosine and info.z
+    float targetRadius = radius + (cos(targetAngle * 2. + 2.) + 1.) * info.z;
 
     // using a curl that returns 2D force field that takes a 3D perlin noise, we feed time to the z component for the perlin noise
     // such that the curl pattern changes over time, preventing particles ending up in deadzones never coming out
-    vec2 curled = curl(vec3(pos.xy * curlPatternScale, u_time * curlVaryingSpeed)) * curlForceFactor;
+    vec2 curled = vec2(0.);
+    // info.w = particle size, with the randomness there should be half over 1.0 pointSize
+    // we apply the same curl function but with different time directions for the 2 batches of particles
+    // thus resulting in different curl patterns for them
+    if (info.w > 1.0) {
+        curled = curl(vec3(pos.xy * curlPatternScale, u_time * curlVaryingSpeed)) * curlForceFactor;
+    } else {
+        curled = curl(vec3(pos.xy * curlPatternScale, -1. * u_time * curlVaryingSpeed)) * curlForceFactor;
+    }
     vec3 targetPos = vec3(cos(targetAngle), sin(targetAngle), 0.0) * targetRadius;
     // new position = curl force + an eased/dampened force towards the target position
     pos.xy += curled.xy + (targetPos.xy - pos.xy) * circularForceFactor;
